@@ -20,7 +20,6 @@ const LoginScreen = () => {
     try {
       const userId = await checkUserLogin(email, password);
       console.log('ID de l\'utilisateur :', userId);
-
       await AsyncStorage.setItem('userId', userId);
       navigation.navigate('Accueil'); // Navigue vers l'écran d'accueil
     } catch (error) {

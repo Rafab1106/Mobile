@@ -105,7 +105,7 @@ const handleTransaction = async () => {
 
     try {
         let id = await addTransact("CryptoTransaction", data);
-        console.log("Transaction ajoutée avec succès. ID du document :", id);
+        // console.log("Transaction ajoutée avec succès. ID du document :", id);
         setModalVisible(false); // Fermer le modal
         setCryptoAmount('');    // Réinitialiser le montant de crypto
     } catch (err) {

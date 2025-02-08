@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal } from 'react
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native'; // Importer la navigation
 import Header from '../Header';
-import {getAllCrypto, checkFavorite, supp} from '../models/CryptoModel';
+import {getAllCrypto, checkFavorite, supp, getFavbyId} from '../models/CryptoModel';
 import {addTransact} from '../models/Transaction'
 import {getUserId} from '../models/LoginModel'
 
@@ -32,6 +32,20 @@ const Market = () => {
   }, []);
 
   useEffect(() => {
+    const fetchfav = async () => {
+      try {
+        const data = await getFavbyId(userid);
+        const favoriteIds = data.map(fav => fav.crypto); // 'crypto' contient l'ID de la crypto
+        setFavorites(favoriteIds);
+      } catch (err) {
+          setError(err.message);
+      }
+    };
+
+    fetchfav();
+  }, [userid]);
+
+  useEffect(() => {
     const fetchCryptos = async () => {
       try {
         const data = await getAllCrypto();
@@ -43,45 +57,17 @@ const Market = () => {
 
     fetchCryptos();
   }, []);
-  // Générer des prix aléatoires
-  const generateRandomPrices = () => {
-    const newPrices = {};
-    cryptos.forEach(crypto => {
-      newPrices[crypto.id] = (Math.random() * 50000 + 10000).toFixed(2);
-    });
-
-    // Comparer avec les anciens prix pour déterminer la couleur du contour
-    const updatedPrices = {};
-    Object.keys(newPrices).forEach(id => {
-      const oldPrice = previousPrices[id] || newPrices[id];
-      const newPrice = newPrices[id];
-      updatedPrices[id] = {
-        price: newPrice,
-        borderColor: newPrice > oldPrice ? 'green' : newPrice < oldPrice ? 'red' : 'gray',
-      };
-    });
-
-    setPreviousPrices(newPrices);
-    // setCryptoPrices(updatedPrices);
-  };
-
-  // Mettre à jour les prix toutes les 10 secondes
-  useEffect(() => {
-    generateRandomPrices();
-    const interval = setInterval(generateRandomPrices, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   const toggleFavorite = async (cryptoId) => {
     try {
         // Étape 1 : Vérifier si l'entrée existe déjà (cryptoId + userId)
-        const retour = await checkFavorite("Favoris",cryptoId,userid);
+        const retour = await checkFavorite("Favories",cryptoId,userid);
 
         if (retour.length != 0) {
           console.log("defavorie");
             // L'entrée existe, donc on supprime
             retour.forEach(async (document) => {
-                await supp("Favoris",cryptoId,userid);
+                await supp("Favories",cryptoId,userid);
                 console.log(`Favori supprimé : ${document.id}`);
             });
 
@@ -93,7 +79,7 @@ const Market = () => {
             user: userid
           };
             // L'entrée n'existe pas, donc on l'ajoute
-            const docRef = await addTransact("Favoris",data);
+            const docRef = await addTransact("Favories",data);
             // console.log(`Favori ajouté : ${docRef.id}`);
 
             // Mise à jour de l'état local

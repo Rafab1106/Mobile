@@ -1,25 +1,26 @@
-import React, { useState, useEffect} from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
-import Header from '../Header';
 import { Timestamp } from 'firebase/firestore';
-import {addTransact} from '../models/Transaction'
-import {getUserId} from '../models/LoginModel'
+import { addTransact } from '../models/Transaction';
+import { getUserId } from '../models/LoginModel';
 
 const DepotPage = () => {
   const [montant, setMontant] = useState('');
   const navigation = useNavigation();
   const [error, setError] = useState(null);
-  const [userid,setUserId] = useState(null);
-  
+  const [userid, setUserId] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);  // Nouveau state pour la Modal
+
   useEffect(() => {
     const fetchid = async () => {
       try {
         const data = await getUserId();
         setUserId(data);
       } catch (err) {
-          setError(err.message);
+        setError(err.message);
       }
     };
 
@@ -27,33 +28,30 @@ const DepotPage = () => {
   }, []);
 
   const handleDepot = async () => {
-    // Logique de dépôt ici (exemple : appeler une API ou mettre à jour un état)
-    
-    const data= {
-      daty:Timestamp.now(),
-      entre:montant,
-      etat:1,
-      sortie:0,
-      user: userid
+    const data = {
+      daty: Timestamp.now(),
+      entre: montant,
+      etat: 1,
+      sortie: 0,
+      user: userid,
     };
 
     try {
       let id = await addTransact("UserTransaction", data);
-      // console.log('Montant déposé :', montant);
-      console.log("Transaction ajoutée avec succès. ID du document :", id);
+      setMessage("Demande de Depot envoyée");
+      setModalVisible(true);  // Afficher la Modal après succès
     } catch (err) {
-        setError(err.message);  // Gérer l'erreur si l'ajout échoue
-        console.error("Erreur lors de l'ajout de la transaction :", err.message);
+      setError(err.message);  // Gérer l'erreur si l'ajout échoue
+      console.error("Erreur lors de l'ajout de la transaction :", err.message);
     }
-    // setMontant('');
+    setMontant('');
   };
 
   return (
     <View style={styles.container}>
-      {/* <header/> */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Icon name="arrow-back" size={30} color="#00ffcc" />
@@ -61,7 +59,6 @@ const DepotPage = () => {
         <Text style={styles.headerTitle}>Dépôt</Text>
       </View>
 
-      {/* Contenu de la page */}
       <View style={styles.content}>
         <TextInput
           style={styles.input}
@@ -75,6 +72,26 @@ const DepotPage = () => {
           <Text style={styles.buttonText}>Déposer</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal pour afficher le message */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}  // Fermer la modal si on appuie en dehors
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>{message}</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -88,7 +105,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 40, // ajustez en fonction du statut (iOS par exemple)
+    paddingTop: 40,
     paddingBottom: 10,
     backgroundColor: '#000',
     borderBottomWidth: 1,
@@ -127,6 +144,36 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#000',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  // Styles pour la Modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',  // Fond semi-transparent
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    width: 250,
+  },
+  modalText: {
+    fontSize: 18,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButton: {
+    backgroundColor: '#00ffcc',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  modalButtonText: {
+    color: '#000',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

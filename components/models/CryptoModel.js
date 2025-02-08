@@ -19,6 +19,14 @@ export const getbyId = async (id) => {
   }
 };
 
+export const getFavbyId = async (id) => {
+  try {
+    const data = await getWithFiltre("Favories","user",id,"==");
+    return data;
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
 export const checkFavorite = async (collectionName,cryptoId,userId) => {
   try {
     const document = ["crypto","user"];
@@ -47,7 +55,6 @@ export const getCryptoBalanceForUser = async (collectionName, userId) => {
   try {
       // Récupérer toutes les transactions pour un utilisateur spécifique
       const data = await getWithFiltre(collectionName, "user", userId, "==");
-      // console.log("Balance : ", JSON.stringify(data));
 
       // Objet pour stocker les soldes par crypto
       const balancesMap = {};
@@ -78,6 +85,7 @@ export const getCryptoBalanceForUser = async (collectionName, userId) => {
               balancesMap[cryptoId].balance = 0;
           }
       });
+
       // Récupérer les détails des cryptos (en parallèle pour optimisation)
       const cryptoIds = Object.keys(balancesMap);
       const cryptoDataList = await Promise.all(cryptoIds.map(async (cryptoId) => {
@@ -95,7 +103,7 @@ export const getCryptoBalanceForUser = async (collectionName, userId) => {
       // Convertir l'objet en tableau d'objets
       const result = Object.values(balancesMap);
 
-      console.log("Soldes par crypto pour l'utilisateur", userId, ":", result);
+      // console.log("Soldes par crypto pour l'utilisateur", userId, ":", result);
       return result;
   } catch (error) {
       console.error("Erreur lors du calcul des soldes :", error);

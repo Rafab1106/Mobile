@@ -13,6 +13,7 @@ const Wallet = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [transactions, setTransactions] = useState(null);
   const [error, setError] = useState(null);
+
   const [userid,setUserId] = useState(null);
 
     useEffect(() => {
@@ -24,34 +25,33 @@ const Wallet = () => {
             setError(err.message);
         }
       };
-  
       fetchid();
     }, []);
 
   useEffect(() => {
     const totalTran = async () => {
       try {
-        // console.log(userid);
         const data = await calculerSommeEntreeSortie(userid,"UserTransaction");
-        console.log(JSON.stringify(data));
         setTotalAmount(data);
       } catch (error) {
         setError(error.message);
       }
     }
     totalTran();
-    const intervalId = setInterval(() => {
-      totalTran();
-    }, 15000);
-
-    return () => clearInterval(intervalId);
-  }, []); 
+    if (userid!=null) {
+      const intervalId = setInterval(() => {
+        totalTran();
+      }, 15000);
+  
+      return () => clearInterval(intervalId);  
+    }
+    
+  }, [userid]); 
 // 
   useEffect(() => {
     const totalcrypt = async () => {
       try {
         const data = await getCryptoBalanceForUser("CryptoTransaction",userid);
-        // console.log(JSON.stringify(data));
         setWallet(data);
       } catch (error) {
         setError(error.message);
@@ -63,7 +63,7 @@ const Wallet = () => {
     }, 15000);
 
     return () => clearInterval(intervalId);
-  }, []); 
+  }, [userid]); 
   
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -76,7 +76,14 @@ const Wallet = () => {
     };
 
     fetchTransactions();
-  }, []);
+    if (userid!=null) {
+      const intervalId = setInterval(() => {
+        fetchTransactions();
+      }, 15000);
+  
+      return () => clearInterval(intervalId);  
+    }
+  }, [userid]);
 
   return (
     <View style={styles.container}>
@@ -128,7 +135,7 @@ const Wallet = () => {
                 renderItem={({ item }) => (
                   <View style={[styles.transactionItem, item.type === "achat" ? styles.buy : styles.sell]}>
                     <Text style={styles.transactionText}>
-                      {item.type} {item.montant} {item.crypto}
+                      {item.type} {item.crypto} {item.montant} 
                     </Text>
                     <Text style={styles.transactionDate}>Date : {item.date}</Text>
                   </View>

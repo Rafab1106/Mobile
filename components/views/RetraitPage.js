@@ -1,46 +1,50 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { Timestamp } from 'firebase/firestore';
-import {addTransact} from '../models/Transaction'
-import {getUserId} from '../models/LoginModel'
+import { addTransact } from '../models/Transaction';
+import { getUserId } from '../models/LoginModel';
 
 const RetraitPage = () => {
   const [montant, setMontant] = useState('');
   const navigation = useNavigation();
   const [error, setError] = useState(null);
-  const [userid,setUserId] = useState(null);
-    useEffect(() => {
-      const fetchid = async () => {
-        try {
-          const data = await getUserId();
-          setUserId(data);
-        } catch (err) {
-            setError(err.message);
-        }
-      };
-  
-      fetchid();
-    }, []);
+  const [userid, setUserId] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);  // Etat de la Modal
+  const [message, setMessage] = useState('');  // Message à afficher dans la Modal
+
+  useEffect(() => {
+    const fetchid = async () => {
+      try {
+        const data = await getUserId();
+        setUserId(data);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+
+    fetchid();
+  }, []);
+
   const handleRetrait = async () => {
-    const data= {
-      daty:Timestamp.now(),
-      entre:0,
-      etat:1,
-      sortie:montant,
-      user: userid
+    const data = {
+      daty: Timestamp.now(),
+      entre: 0,
+      etat: 1,
+      sortie: montant,
+      user: userid,
     };
 
     try {
       let id = await addTransact("UserTransaction", data);
-      // console.log('Montant déposé :', montant);
-      console.log("Transaction ajoutée avec succès. ID du document :", id);
+      setMessage("Demande de Retrait envoyer");
+      setModalVisible(true);  // Affiche la Modal après succès
     } catch (err) {
-        setError(err.message);  // Gérer l'erreur si l'ajout échoue
-        console.error("Erreur lors de l'ajout de la transaction :", err.message);
+      setError(err.message);
+      setMessage("Erreur lors du retrait, veuillez réessayer.");
+      setModalVisible(true);  // Affiche la Modal en cas d'erreur
     }
-    // console.log('Montant retiré :', montant);
     setMontant('');
   };
 
@@ -53,7 +57,6 @@ const RetraitPage = () => {
         <Text style={styles.headerTitle}>Retour</Text>
       </View>
 
-      {/* Contenu centré */}
       <View style={styles.content}>
         <Text style={styles.title}>Page de Retrait</Text>
         <TextInput
@@ -68,6 +71,26 @@ const RetraitPage = () => {
           <Text style={styles.buttonText}>Retirer</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal pour afficher le message */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}  // Fermer la modal si on appuie en dehors
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>{message}</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -96,9 +119,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   content: {
-    flex: 1, 
-    justifyContent: 'center', // ✅ Centre verticalement
-    alignItems: 'center', // ✅ Centre horizontalement
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   input: {
@@ -110,19 +133,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 20,
     color: '#fff',
-    textAlign: 'center', // ✅ Centre le texte
+    textAlign: 'center',
   },
   button: {
     backgroundColor: '#00ffcc',
     paddingVertical: 15,
     paddingHorizontal: 25,
     borderRadius: 5,
-    alignItems: 'center', // ✅ Centre le texte dans le bouton
-    width: '80%', // ✅ Garde une bonne proportion
+    alignItems: 'center',
+    width: '80%',
   },
   buttonText: {
     color: '#000',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+
+  // Styles pour la Modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    width: 250,
+  },
+  modalText: {
+    fontSize: 18,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButton: {
+    backgroundColor: '#00ffcc',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  modalButtonText: {
+    color: '#000',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

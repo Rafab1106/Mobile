@@ -1,33 +1,71 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, Modal, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Image, Modal, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'react-native-image-picker';
+import { FontAwesome } from '@expo/vector-icons';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const [profileImage, setProfileImage] = useState(null);
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Ouvrir la galerie
+  // Charger l'image de profil au lancement
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      try {
+        const imageUri = await AsyncStorage.getItem('profileImage');
+        if (imageUri) {
+          setProfileImage(imageUri);
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement de l'image:", error);
+      }
+    };
+
+    loadProfileImage();
+  }, []);
+
+  // Sauvegarder l'image de profil
+  const saveProfileImage = async (imageUri) => {
+    try {
+      await AsyncStorage.setItem('profileImage', imageUri);
+      setProfileImage(imageUri);
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde de l'image:", error);
+    }
+  };
+
+  // Sélectionner une image depuis la galerie
   const pickImageFromGallery = () => {
     ImagePicker.launchImageLibrary({ mediaType: 'photo' }, (response) => {
       if (!response.didCancel && response.assets) {
-        setProfileImage(response.assets[0].uri);
+        saveProfileImage(response.assets[0].uri);
       }
       setModalVisible(false);
     });
   };
 
-  // Ouvrir la caméra
   const takePhotoWithCamera = () => {
-    ImagePicker.launchCamera({ mediaType: 'photo' }, (response) => {
-      if (!response.didCancel && response.assets) {
-        setProfileImage(response.assets[0].uri);
-      }
-      setModalVisible(false);
-    });
+    setModalVisible(false);
+    setTimeout(() => {
+      ImagePicker.launchCamera({ mediaType: 'photo' }, (response) => {
+        if (!response.didCancel && response.assets) {
+          saveProfileImage(response.assets[0].uri);
+        }
+      });
+    }, 500);
+  };
+  
+
+  // Déconnexion
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('userId');
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
   };
 
   return (
@@ -40,43 +78,44 @@ const ProfileScreen = () => {
       <Text style={styles.title}>Modifier le Profil</Text>
 
       {/* Photo de profil */}
-      <TouchableOpacity onPress={() => setModalVisible(true)}>
-        <Image
-          source={profileImage ? { uri: profileImage } : require('../assets/images/profil.jpg')}
-          style={styles.profileImage}
-        />
+      <Image
+        source={profileImage ? { uri: profileImage } : require('../assets/images/profil.jpg')}
+        style={styles.profileImage}
+      />
+
+      {/* Bouton pour modifier la photo */}
+      <TouchableOpacity style={styles.editPhotoButton} onPress={() => setModalVisible(true)}>
+        <Text style={styles.editPhotoButtonText}>Modifier la photo de profil</Text>
       </TouchableOpacity>
 
-      {/* Champ de saisie du Nom */}
-      <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Nom" />
-
-      {/* Champ de saisie du Mot de passe */}
-      <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Mot de passe" secureTextEntry />
-
-      {/* Bouton de sauvegarde */}
-      <TouchableOpacity style={styles.saveButton}>
-        <Text style={styles.saveButtonText}>Enregistrer</Text>
-      </TouchableOpacity>
-
-      {/* Fenêtre modale pour modifier la photo */}
+      {/* Fenêtre modale pour changer la photo */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Changer la photo de profil</Text>
+
+            {/* Ouvrir la galerie */}
             <TouchableOpacity style={styles.modalButton} onPress={pickImageFromGallery}>
-        <Image source={require('../assets/images/iconDossierVert.jpg')} style={styles.buttonImage} />
-      </TouchableOpacity>
+              <FontAwesome name="folder-open" size={40} color="#00ffcc" />
+            </TouchableOpacity>
 
-      <TouchableOpacity style={styles.modalButton} onPress={takePhotoWithCamera}>
-        <Image source={require('../assets/images/camera.jpg')} style={styles.buttonImage} />
-      </TouchableOpacity>
+            {/* Ouvrir la caméra */}
+            <TouchableOpacity style={styles.modalButton} onPress={takePhotoWithCamera}>
+              <FontAwesome name="camera" size={40} color="#ffcc00" />
+            </TouchableOpacity>
 
+            {/* Annuler */}
             <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
               <Text style={styles.closeButtonText}>Annuler</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+
+      {/* Bouton Déconnexion */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutButtonText}>Déconnexion</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -113,21 +152,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#00ffcc',
   },
-  input: {
-    width: '90%',
-    backgroundColor: '#222',
-    padding: 10,
-    borderRadius: 5,
-    color: '#fff',
-    marginBottom: 10,
-  },
-  saveButton: {
+  editPhotoButton: {
     backgroundColor: '#00ffcc',
     padding: 10,
     borderRadius: 5,
-    marginTop: 20,
+    marginTop: 10,
   },
-  saveButtonText: {
+  editPhotoButtonText: {
     color: '#000',
     fontWeight: 'bold',
   },
@@ -149,16 +180,11 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   modalButton: {
-    backgroundColor: '#222222',
-    padding: 0,
-    width:100,
-    height:55,
-    borderRadius: 5,
+    backgroundColor: '#333',
+    padding: 15,
+    borderRadius: 50,
     marginVertical: 5,
-  },
-  modalButtonText: {
-    color: '#000',
-    fontWeight: 'bold',
+    alignItems: 'center',
   },
   closeButton: {
     marginTop: 10,
@@ -169,11 +195,18 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: '#fff',
   },
-  buttonImage: {
-    width: 100,  
-    height: 55, 
-    resizeMode: 'contain',
-    borderRadius:100,
+  logoutButton: {
+    backgroundColor: '#ff4444',
+    padding: 12,
+    borderRadius: 7,
+    marginTop: 30,
+    width: '60%',
+    alignItems: 'center',
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 
